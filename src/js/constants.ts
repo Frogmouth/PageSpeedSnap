@@ -8,7 +8,8 @@ const VITALSTRASHOLD = {
 
 const VITALSID = Object.keys(VITALSTRASHOLD);
 
-const DBNAME = 'Pagespeedsnap';
+const DBNAME = 'Pagespeedsnap--test';
+const DBVERSION = 1;
 const OBJECTNAME = 'snaps';
 
-export { VITALSTRASHOLD, VITALSID, DBNAME, OBJECTNAME };
+export { VITALSTRASHOLD, VITALSID, DBNAME, OBJECTNAME, DBVERSION };

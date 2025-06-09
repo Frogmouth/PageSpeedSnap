@@ -12,10 +12,10 @@ const config = merge(common, {
     popup: PATHS.src + '/js/popup.jsx',
     dashboard: PATHS.src + '/js/dashboard.jsx',
     settings: PATHS.src + '/js/settings.jsx',
+    background: PATHS.src + '/js/background.jsx',
 
     //javascript
     contentScript: PATHS.src + '/js/contentScript.js',
-    background: PATHS.src + '/js/background.js',
     injected: PATHS.src + '/js/injected.js',
   },
 });

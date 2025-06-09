@@ -3,8 +3,10 @@
 import React, {useEffect, useState, useMemo, Fragment, Suspense, useCallback} from 'react';
 import { Table, Badge, Container, Navbar, Spinner, Offcanvas, Button, ToggleButton, FormCheck, DropdownButton, Dropdown, Alert, Form } from 'react-bootstrap';
 import { createRoot } from 'react-dom/client';
+import { useLiveQuery } from "dexie-react-hooks";
 
-import {DBNAME, OBJECTNAME, VITALSID } from './constants.ts';
+import {OBJECTNAME, VITALSID } from './constants.ts';
+import { snaps } from './components/db.jsx';
 
 const Chart = React.lazy(() => import('./components/Chart.jsx'));
 
@@ -40,20 +42,26 @@ const checkFilter = (filters, item) => {
 }
 
 const Dashboard = () => {
-    const [db, setDb] = useState(null);
-    const [snaps, setSnaps] = useState(null);
+
+    const today = new Date();
+    const last30Days = new Date();
+
+    last30Days.setDate(today.getDate() - 30);
+
     const [filters, setFilters] = useState([]);
     const [showFor, setShowFor] = useState(null);
     const [domain, setDomain] = useState(null);
+    const [fetchDate, setFetchDate] = useState(null);
     const [url, setUrl] = useState(null);
     const [showChart, setShowChart] = useState(null);
+    const snapsList = useLiveQuery(() => snaps.where('fetchDate').above(last30Days).toArray(), [url,domain,fetchDate]);
 
     const [showPerformance, setShowPerformance] = useState(false);
     const [selectedItems, setSelectedItems] = useState([]);
     const [groupBy, setGroupBy] = useState(null);
 
     const sortedSnap = useMemo(() => {
-        let newSnap = snaps || []
+        let newSnap = snapsList || []
         if(newSnap.length < 2) return newSnap;
         let newFilterd;
         if(filters.length) {
@@ -88,10 +96,10 @@ const Dashboard = () => {
         }
 
         return result;
-    }, [snaps, filters, groupBy]);
+    }, [snapsList, filters, groupBy]);
 
-    const domainsFilter = useMemo(() => (snaps||[]).map((snap) => snap.domain).filter(onlyUnique), [snaps]);
-    const urlsFilter = useMemo(() => (snaps||[]).map((snap) => snap.originalurl).filter(onlyUnique), [snaps]);
+    const domainsFilter = useMemo(() => (snapsList||[]).map((snap) => snap.domain).filter(onlyUnique), [snapsList]);
+    const urlsFilter = useMemo(() => (snapsList||[]).map((snap) => snap.originalurl).filter(onlyUnique), [snapsList]);
     const dateFilter = useMemo(() => (sortedSnap||[]).map((snap) => snap.fetchDate).sort(function(a,b) {
         return b.fetchDate - a.fetchDate;
     }).filter(onlyUnique), [sortedSnap]);
@@ -128,53 +136,6 @@ const Dashboard = () => {
 
         setShowFor(url && 'url' || domain && 'domain' || 'unselected');
 
-        if((!domain && !url) || !db) return;
-
-        let transaction = db.transaction(OBJECTNAME, "readonly");
-        let snaps = transaction.objectStore(OBJECTNAME); 
-        
-        let request;
-
-        if (domain) {
-            setDomain(domain);
-            const index = snaps.index('domain_idx');
-            request = index.getAll(domain);
-        } else if (url) {
-            setUrl(url);
-            setDomain(new URL(url).hostname);
-            const index = snaps.index('originalurl_idx');
-            request = index.getAll(url);
-        } else {
-          //notify
-          return;
-        }
-
-        request.onsuccess = function() {
-          console.log("SNAP found", request.result);
-          setSnaps(request.result);
-        };
-        
-        request.onerror = function() {
-          console.log("SNAP not found", request.error);
-          setSnaps([]);
-        };
-        
-        transaction.oncomplete = function() {
-          console.log("Transaction is complete");
-        };
-
-    }, [db]);
-
-    useEffect(() => {
-        const openRequest = indexedDB.open(DBNAME, 1);
-        
-        openRequest.onerror = function(event) {
-            console.error("Error: ", event);
-        };
-        
-        openRequest.onsuccess = function(event) {
-            setDb(event.target.result);
-        }
     }, []);
 
     /**
@@ -205,8 +166,9 @@ const Dashboard = () => {
         objRequest.delete(id);
 
         transaction.oncomplete = () => {
-            console.log("SNAP delete");
-            setSnaps(snaps.filter((snap) => snap.id !== id));
+            console.log("SNAP delete");    snapsList.filter((snap) => snap.useLiveQuery(() => {
+                
+            }));
         }
     }
 
@@ -223,7 +185,7 @@ const Dashboard = () => {
             }
 
             // using item object properties
-            const item = snaps.find((snap) => snap.id === itemid);
+            const item = snapsList.find((snap) => snap.id === itemid);
             if(key === 'vis_url') {
                 return `${visTestUrl}${encodeURIComponent(item.originalurl)}`;
             }
@@ -297,14 +259,14 @@ const Dashboard = () => {
                         <DropdownButton disabled={!selectedItems.length} size='sm' variant="primary" id="dropdown-all-menu" title={<i className="bi bi-gear-fill"></i>}>
                             <Dropdown.Item title="Create new sneps" onClick={() => {
                                 selectedItems.forEach((id) => {
-                                    const snap = snaps.find((snap) => snap.id === id);
+                                    const snap = snapsList.find((snap) => snap.id === id);
                                     openPage(`${pageSpeedTestUrl}?close=1&url=${snap.originalurl}`, true);
                                 })}}>New sneps</Dropdown.Item>
                             <Dropdown.Item title="Open all urls" onClick={() => {
                                 selectedItems.forEach((id) => {
                                     openPage(`${pageSpeedTestUrl}/${id}`);
                                 })
-                            }}>Open snaps</Dropdown.Item>
+                            }}>Open snapsList</Dropdown.Item>
                             <Dropdown.Divider />
                             <Dropdown.Item title="Copy insight" onClick={() => copyBulk(selectedItems, 'snap_url')}>Copy Pagespeed urls</Dropdown.Item>
                             <Dropdown.Item title="Open all urls" onClick={() => copyBulk(selectedItems, 'originalurl')}>Copy original urls</Dropdown.Item>
@@ -467,7 +429,7 @@ const Dashboard = () => {
                 <Container fluid className="d-flex sticky-top gap-1 align-items-center px-3 mb-2 bg-light-subtle text-info-emphasis justify-content-between border-bottom border-top">
                     <div className="py-2 d-flex gap-2 align-items-center">
                         {showFor === 'url' && domain && <Button target='_blank' href={`?domain=${encodeURIComponent(domain)}`} className='text-decoration-none' variant='link'><i className="bi bi-arrow-90deg-up"></i> Domain</Button> || null}
-                        {sortedSnap.length && <span>{sortedSnap.length} / {(snaps||[]).length}</span> || null}
+                        {sortedSnap.length && <span>{sortedSnap.length} / {(snapsList||[]).length}</span> || null}
                         {selectedItems.length > 0 && <div className='py-1 px-2 text-bold rounded border'>{selectedItems.length} Selected</div> || null}
                         {filters.length && <div className="d-flex gap-1 py-1">
                             {filters.map((filter) => <Badge key={filter.id} className="text-uppercase" style={{whiteSpace: 'nowrap', cursor: !filter.static ? 'pointer' : null}} onClick={() => !filter.static && removeFilter(filter.id, filter.value)} title={filter.value}>{!filter.static && 'x ' || '' }{filter.label}: {filterLabel(filter.value)}</Badge>)}
@@ -509,8 +471,8 @@ const Dashboard = () => {
                     <Chart sortedSnap={sortedSnap} showChart={showChart} />
                 </Suspense>}
                 <Container fluid>
-                    {!snaps ? <div className="d-flex justify-content-center align-items-center w-100" style={{height:450}}>
-                        {snaps !== null ? <Alert key="info" variant="info">Snapshot</Alert> : <Spinner animation="grow" /> }
+                    {!snapsList ? <div className="d-flex justify-content-center align-items-center w-100" style={{height:450}}>
+                        {snapsList !== null ? <Alert key="info" variant="info">No snapShot found.</Alert> : <Spinner animation="grow" /> }
                     </div> : <RenderTable />}
                 </Container>
             </>
@@ -518,7 +480,7 @@ const Dashboard = () => {
             <>
                 <Container className="h-100 d-flex justify-content-center align-items-center">
                     <div>
-                        <Alert key="info" variant="info">Select a URL or Domain to see the snapshots</Alert>
+                        <Alert key="info" variant="info">Select a URL or Domain to see the snapshotsList</Alert>
                         <div>
                             <Form>
                                 <Form.Label>Search a term:</Form.Label>

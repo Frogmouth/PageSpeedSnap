@@ -20,13 +20,18 @@
     "mini-css-extract-plugin": "^0.10.1",
     "prettier": "3.5.3",
     "size-plugin": "^2.0.2",
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.8.3",
     "webpack": "^5.99.7",
     "webpack-cli": "^4.10.0",
     "webpack-merge": "^5.10.0"
   },
   "dependencies": {
+    "@types/chrome": "^0.0.326",
     "bootstrap": "^5.3.6",
     "chart.js": "^4.4.9",
+    "dexie": "^4.0.11",
+    "dexie-react-hooks": "^1.1.7",
     "lodash": "^4.17.21",
     "react": "^19.1.0",
     "react-bootstrap": "^2.10.10",
