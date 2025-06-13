@@ -6,7 +6,7 @@ import { createRoot } from 'react-dom/client';
 import { useLiveQuery } from "dexie-react-hooks";
 
 import {OBJECTNAME, VITALSID } from './constants.ts';
-import { snaps } from './components/db.jsx';
+import db, { snaps } from './helpers/db.jsx';
 
 const Chart = React.lazy(() => import('./components/Chart.jsx'));
 
@@ -417,7 +417,7 @@ const Dashboard = () => {
     const RenderNav = () => {
         return (<Navbar expand="lg" className="bg-body-tertiary">
             <Container fluid>
-                <Navbar.Brand href="#">PageSpeed SNAP</Navbar.Brand>
+                <Navbar.Brand>PageSpeed SNAP - <small>Dashbaord</small></Navbar.Brand>
             </Container>
         </Navbar>)
     }
