@@ -1,7 +1,7 @@
 'use strict';
 
 import React, {useLayoutEffect, useEffect, useState, createContext, useMemo, useContext} from 'react';
-import {Button, Modal, Row, Col, Container, FormCheck} from 'react-bootstrap';
+import {Button, Modal, Row, Col, Container, FormCheck, Navbar, Nav} from 'react-bootstrap';
 import { createRoot } from 'react-dom/client';
 
 const defaultAppContext = {
@@ -10,6 +10,7 @@ const defaultAppContext = {
     pageType: 'idle',
     pageStatus: null,
     dashboardUrl: null,
+    settingsUrl: null,
     pageSpeedTestUrl: "https://pagespeed.web.dev/analysis?url="
 };
 const AppContext = createContext(null);
@@ -64,7 +65,7 @@ const SniffResult = () => {
                 return (<div>
                 <p>Snapshots for this site:</p>
                 <Row>
-                    <Col><Button onClick={() => openDashboard()} variant="primary">Page snaps</Button></Col>
+                    <Col><Button onClick={() => openDashboard()} variant="primary">Exact URL snaps</Button></Col>
                     <Col><Button onClick={() => openDashboard(true)} variant="secondary">Domain snaps</Button></Col>
                 </Row>
             </div>)
@@ -175,11 +176,16 @@ const Dashboard = () => {
     const [pageType, setPageType] = useState(defaultAppContext.pageType);
     const [pageStatus, setPageStatus] = useState(defaultAppContext.pageStatus);
     const dashboardUrl = chrome.runtime.getURL('dashbaord.html');
+    const settingsUrl = chrome.runtime.getURL('settings.html');
 
     const appState = useMemo(() => {
         return {url, tabid, pageType, pageStatus, dashboardUrl, pageSpeedTestUrl: defaultAppContext.pageSpeedTestUrl};
 
-    }, [url,tabid,pageType,pageStatus])
+    }, [url,tabid,pageType,pageStatus]);
+
+    const openSettings = () => {
+        openPage(settingsUrl);
+    }
 
     useEffect( () => {
         if(url) {
@@ -261,21 +267,32 @@ const Dashboard = () => {
         }
     }, []);
 
-    return (<div className="com_dashboard d-flex justify-content-center align-items-center h-100 w-100">
+    return (<div className="com_dashboard d-flex justify-content-center h-100 w-100">
         <AppContext.Provider value={appState}>
-            <Container>
-                <Row className="mb-3">
-                    <Col>
-                        <SniffResult />
-                    </Col>
-                </Row>
-                <hr />
-                <Row>
-                    <Col>
-                        <SniffPage />
-                    </Col>
-                </Row>
-            </Container>
+            <div>
+                <Navbar bg="primary" data-bs-theme="dark">
+                    <Container>
+                        <Nav>
+                            <Nav.Link onClick={openSettings}>
+                                <i className="bi bi-house-gear-fill"></i> Configs
+                            </Nav.Link>
+                        </Nav>
+                    </Container>
+                </Navbar>
+                <Container className="py-2">
+                    <Row className="mb-3">
+                        <Col>
+                            <SniffResult />
+                        </Col>
+                    </Row>
+                    <hr />
+                    <Row>
+                        <Col>
+                            <SniffPage />
+                        </Col>
+                    </Row>
+                </Container>
+            </div>
         </AppContext.Provider>
     </div>);
 }
