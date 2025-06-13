@@ -27,6 +27,7 @@ const Settings = () => {
     const [originPath, setOriginPath] = useState('');
     const [originType, setOriginType] = useState('');
     const [enableDesitnation, setEnableDestination] = useState(false);
+    const [enableMutator, setEnableMutator] = useState(false);
     const [destinationPath, setDestinationPath] = useState('');
     const [options, setOptions] = useState({
         savemode: 'empty',
@@ -43,6 +44,10 @@ const Settings = () => {
     const dbNamesDestination = useMemo(() => {
         return dbNames?.filter((n) => n !== originDb) || [];
     }, [originDb,dbNames])
+
+    const useMutator = useMemo(() => {
+        return enableMutator && enableDesitnation;
+    }, [enableMutator,enableDesitnation])
 
     const dataform = useRef();
 
@@ -366,22 +371,14 @@ const Settings = () => {
                             </Form.Text>
                         </Form.Group>
                     </Card.Header>
-                    <Card.Body style={{opacity: enableDesitnation ? 1 : 0.5}}>
-                        <Form.Group className="mb-4">
-                            <Form.Label htmlFor='destination'>Destination path</Form.Label>
-                            <InputGroup className='mb-2'>
-                                <Form.Control disabled={!enableDesitnation} id="destination" placeholder="`root.prop`, `root.prop.childprod`" onInput={(e) => setDestinationPath(e.target.value)} value={destinationPath} />
-                                <InputGroup.Text>convert to: </InputGroup.Text>
-                                <Form.Select className="fade opacity-25 opacity-100" id="destinationtype" value={mutator} disabled={!DATATYPES[originType]?.mutators?.length} onInput={(e) => setMutator(e.target.value)}>
-                                    <option value="">Use origin data</option>
-                                    {DATATYPES[originType]?.mutators?.map((mut) => <option key={mut.type} value={mut.type}>{DATATYPES[mut.type].label}</option>)}
-                                </Form.Select>
-                            </InputGroup>
+                    <Card.Body className={!enableDesitnation && 'd-none' || ''}>
+                        <Form.Group className="mb-4" controlId='destination'>
+                            <Form.Label>Destination path</Form.Label>
+                            <Form.Control disabled={!enableDesitnation} placeholder="`root.prop`, `root.prop.childprod`" onInput={(e) => setDestinationPath(e.target.value)} value={destinationPath} />
                             <Form.Text>
                                 Expect a single path, <code>|</code> will be ignored and first path in used
                             </Form.Text>
                         </Form.Group>
-
                         <Form.Group className="mb-3">
                             <Form.Label>Override destination data</Form.Label>
                             <Form.Check
@@ -425,6 +422,49 @@ const Settings = () => {
                             <Form.Text muted>
                                 If checked the process not change any data on DB, but execute every step and log result
                             </Form.Text>
+                        </Form.Group>
+                    </Card.Body>
+                </Card>
+                <Card className='mb-4'>
+                    <Card.Header>
+                        <Form.Group controlId="enableMutator">
+                            <Form.Check
+                                onChange={(e) => setEnableMutator(e.target.checked)}
+                                disabled={!enableDesitnation}
+                                checked={useMutator}
+                                type="checkbox"
+                                name="enabledestination"
+                                label="Enable mutators"
+                            />
+                            <Form.Text className='mt-2'>
+                                Mutators should be enabled only if destination is also
+                            </Form.Text>
+                        </Form.Group>
+                    </Card.Header>
+                    <Card.Body className={useMutator ? '' : 'd-none'}>
+                        <Form.Group controlId='destinationtype' className="mb-3">
+                            <Form.Label>Standard mutator</Form.Label>
+                            <Form.Select className="fade opacity-25 opacity-100" id="destinationtype" value={mutator} disabled={!DATATYPES[originType]?.mutators?.length} onInput={(e) => setMutator(e.target.value)}>
+                                <option value="">Use origin data</option>
+                                {DATATYPES[originType]?.mutators?.map((mut) => <option key={mut.type} value={mut.type}>{DATATYPES[mut.type].label}</option>)}
+                            </Form.Select>
+                            <Form.Text>
+                                Standard mutator will be invoked <strong><u>before</u></strong> custom mutator
+                            </Form.Text>
+                        </Form.Group>
+                        <Form.Group className="mb-3">
+                            <Form.Label>
+                                Custom Mutator
+                            </Form.Label>
+                            <Form.Text>
+                                Write a code that is used to maniupate initial value, errors in custom mutator <strong><u>immedialty STOP</u></strong> the run.<br/>
+                                The script will be wrapped in a function with arguments:
+                                <ul>
+                                    <li><code>value:any</code> that is the value to manupulate  (return value also)</li>
+                                    <li><code>type:string</code> the type of the given value using the <strong>Origin Type</strong> convention names</li>
+                                </ul>
+                            </Form.Text>
+                            <iframe id="custommutator" src="mutator.html" className="w-100" height={400} style={!useMutator && {pointerEvents: 'none'} || null} />
                         </Form.Group>
                     </Card.Body>
                 </Card>

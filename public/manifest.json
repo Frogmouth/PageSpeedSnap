@@ -36,5 +36,8 @@
       "resources":["injected.js"],
       "matches": ["*://pagespeed.web.dev/*"]
     }
-  ]
+  ],
+  "sandbox": {
+    "pages" :["mutator.html"]
+  }
 }
