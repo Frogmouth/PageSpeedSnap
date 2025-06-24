@@ -205,10 +205,11 @@ const Dashboard = () => {
 
     /* renders */
 
-    const vitalsMetricsDisplay = function(vitals) {
+    const vitalsMetricsDisplay = function(vitals, isOrigin) {
         const badgeVariant = vitals.assessment === 'average' ? 'warning' : vitals.assessment === 'good' ? 'success' : 'danger';
         const naValue = vitals.value === null;
-        return <div>
+        return <div className="position-relative">
+            {isOrigin && <Badge className='position-absolute' style={{fontSize:'50%', right:0, top: -4}} pill bg="warning" text="dark">origin</Badge> || null}
             <Badge pill text={naValue && 'dark' || null} bg={ naValue && 'light' || badgeVariant} title={naValue && vitals.display || null}>{vitals.value && vitals.display || 'N/A'}</Badge>
             <div className='d-flex gap-1 justify-content-center' style={{fontSize: '60%'}}>{vitals.percentages?.map((p,i) => <span key={i}>{p.displayValue}</span>) || '-% -% -%'}</div>
         </div>
@@ -308,9 +309,11 @@ const Dashboard = () => {
                             {addHeading && <tr>
                                 <td colSpan="100%" className='bg-info-subtle text-info-emphasis'>{display(item[groupBy]) || `no-${groupBy}`}</td>
                             </tr> || null}
-                            <tr key={item.id}>
+                            <tr key={item.id} data-id={item.id}>
                                 <td className='border text-center'>
                                     <DropdownButton size='sm' variant="light" id="dropdown-menu-align-end" title={<i className="bi bi-gear-fill"></i>}>
+                                        <Dropdown.Item>ID: {item.id}</Dropdown.Item>
+                                        <Dropdown.Divider />
                                         <Dropdown.Item target='_blank' title={`Original: ${item.originalurl}`} href={item.originalurl}>Open url</Dropdown.Item>
                                         <Dropdown.Item target='_blank' title="PageSpeed SANP" href={`${pageSpeedTestUrl}/${item.id}`}>Page Speed snap</Dropdown.Item>
                                         <Dropdown.Item target='_blank' title="Vis Report" href={`${visTestUrl}${encodeURIComponent(item.originalurl)}`}>VIS Report</Dropdown.Item>
@@ -327,7 +330,7 @@ const Dashboard = () => {
                                 {/* <td>{item.desktopSnifferVersion !== item.mobileSnifferVersion ? <Badge title={`${item.desktopSnifferVersion} ${item.mobileSnifferVersion}`} pill bg="danger">YES</Badge> : <Badge pill bg="success">NO</Badge>}</td> */}
                                 <td className='text-center'>{Math.ceil(item.desktop?.categories?.performance?.score * 100) || '-'}</td>
                                 {!showPerformance && item.desktop?.vitals?.metrics && VITALSID.map((key) => <td key={key} className={[item.desktop?.vitals?.general === 'Failed' ? 'bg-danger-subtle' : 'bg-success-subtle', 'text-center vital-metric'].join(' ')}>
-                                    {item.desktop.vitals.metrics[key] ? vitalsMetricsDisplay(item.desktop.vitals.metrics[key], item.desktop?.vitals?.general) : '-'}
+                                    {item.desktop.vitals.metrics[key] ? vitalsMetricsDisplay(item.desktop.vitals.metrics[key], item.desktop?.vitals?.origin) : '-'}
                                 </td>)}
                                 {showPerformance && item.desktop?.categories?.performance?.auditRefs?.filter((ref) => ref.group === 'metrics' && !!ref.acronym ).map((ref) => {
                                     const metric = item.desktop.audits?.[ref.id];
@@ -337,7 +340,7 @@ const Dashboard = () => {
                                 })}
                                 <td className='text-center'>{Math.ceil(item.mobile?.categories?.performance?.score * 100) || '-'}</td>
                                 {!showPerformance && item.mobile?.vitals?.metrics && VITALSID.map((key) => <td key={key} className={[item.mobile?.vitals?.general === 'Failed' ? 'bg-danger-subtle' : 'bg-success-subtle', 'text-center vital-metric'].join(' ')}>
-                                    {item.mobile.vitals.metrics[key] ? vitalsMetricsDisplay(item.mobile.vitals.metrics[key]) : '-'}
+                                    {item.mobile.vitals.metrics[key] ? vitalsMetricsDisplay(item.mobile.vitals.metrics[key], item.mobile?.vitals?.origin) : '-'}
                                 </td>)}
                                 {showPerformance && item.mobile?.categories?.performance?.auditRefs?.filter((ref) => ref.group === 'metrics' && !!ref.acronym ).map((ref) => {
                                     const metric = item.mobile.audits?.[ref.id];

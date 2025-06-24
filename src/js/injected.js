@@ -67,9 +67,20 @@ const DOMsniffer = function () {
       general:
         pan[ONE](SELECTORS.VITALS_GENERAL).nextElementSibling[ONE]("span")
           ?.innerText || null,
-      origin: originButton ? originButton.classList === 2 : null,
+      origin: originButton ? originButton.classList?.length === 2 : null,
       metrics: {},
     };
+
+    if (result[panName].origin) {
+      if (!originButton.previousElementSibling?.disabled) {
+        // eslint-disable-next-line prettier/prettier
+        throw new Error(`PAGESPEED SNAP - SNIFFER - [ERROR] please slect "This URL" instead of "Origin" on  ${panName.toUpperCase()} vitals tab`);
+      } else {
+        console.log(
+          `PAGESPEED SNAP - SNIFFER - [WARN] ${panName.toUpperCase()} USE "ORIGIN" `,
+        );
+      }
+    }
 
     Object.keys(vitalsTrashold).forEach(function (metric) {
       const $vitalTitle = pan[ONE](SELECTORS.VITALS_METIRCS(metric));
