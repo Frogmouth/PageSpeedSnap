@@ -4,11 +4,14 @@ import Dexie from 'dexie';
 
 import {DBNAME, OBJECTNAME, DBVERSION } from '../constants.ts';
 
-import { getData } from './localstorage.jsx';
+import {getData} from './localstorage.ts';
 
-const db = new Dexie(getData('dbName') || DBNAME);
+const dbName = (await getData('dbName')) || DBNAME ;
+const dbVersion = (await getData('dbVersion')) || DBVERSION ;
 
-db.version(getData('dbVersion') ||  DBVERSION).stores({
+const db = new Dexie(dbName);
+
+db.version(dbVersion).stores({
     [OBJECTNAME]: 'id, domain, originalurl, fetchDate'
 });
 

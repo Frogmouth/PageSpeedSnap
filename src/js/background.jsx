@@ -1,6 +1,7 @@
 'use strict';
 
-import { snaps } from './helpers/db.jsx';
+
+import { snaps } from './helpers/db.ts';
 
 let beforeDbQueue = [];
 
@@ -65,7 +66,7 @@ chrome.runtime.onMessage.addListener((data, sender, sendResponse) => {
         });
       }
       
-      if(db) {
+      if(snaps) {
         exec();
       } else {
         beforeDbQueue.push(exec);
@@ -116,7 +117,7 @@ chrome.runtime.onMessage.addListener((data, sender, sendResponse) => {
         });
       }
       
-      if(db) {
+      if(snaps) {
         exec();
       } else {
         beforeDbQueue.push(exec);

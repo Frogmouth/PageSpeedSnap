@@ -6,7 +6,7 @@ import { createRoot } from 'react-dom/client';
 import { useLiveQuery } from "dexie-react-hooks";
 
 import {OBJECTNAME, VITALSID } from './constants.ts';
-import db, { snaps } from './helpers/db.jsx';
+import db, { snaps } from './helpers/db.ts';
 
 const Chart = React.lazy(() => import('./components/Chart.jsx'));
 

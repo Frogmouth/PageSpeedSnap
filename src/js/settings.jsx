@@ -6,9 +6,9 @@ import { createRoot } from 'react-dom/client';
 
 import {DBNAME, DATATYPES, VITALSTRASHOLD, DBVERSION, ERROROPTIONS } from './constants.ts';
 
-import { getData, setData } from './helpers/localstorage.jsx';
+import { getData, setData } from './helpers/localstorage.ts';
 import { testPathOn } from './helpers/dataHelpers.jsx';
-import db, { snaps, getDbNames } from './helpers/db.jsx';
+import db, { snaps, getDbNames } from './helpers/db.ts';
 
 
 const debounce = function(func, timeout = 2000){
@@ -46,11 +46,12 @@ const Settings = () => {
 
     const dataform = useRef();
 
-    useEffect(() => {
-        setDbname(getData('dbName') || DBNAME);
-        setOriginDb(getData('dbName') || DBNAME);
-        setDbVersion(getData('dbVersion') || DBVERSION)
-        setVitalsTrashold(getData('vitalsTrashold') || JSON.stringify(VITALSTRASHOLD))
+    useEffect(async () => {
+        const name = await getData('dbName')
+        setDbname(await getData('dbName') || DBNAME);
+        setOriginDb(await getData('dbName') || DBNAME);
+        setDbVersion(await getData('dbVersion') || DBVERSION)
+        setVitalsTrashold(await getData('vitalsTrashold') || JSON.stringify(VITALSTRASHOLD))
         getDbNames().then((names) => setDbnames(names)).catch(() => setDbnames(null));
     }, []);
     
