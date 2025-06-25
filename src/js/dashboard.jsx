@@ -1,11 +1,11 @@
 'use strict';
 
 import React, {useEffect, useState, useMemo, Fragment, Suspense, useCallback} from 'react';
-import { Table, Badge, Container, Navbar, Spinner, Offcanvas, Button, ToggleButton, FormCheck, DropdownButton, Dropdown, Alert, Form } from 'react-bootstrap';
+import { Table, Badge, Container, Navbar, Spinner, Offcanvas, Button, ToggleButton, FormCheck, DropdownButton, Dropdown, Alert, Form, OverlayTrigger, Tooltip} from 'react-bootstrap';
 import { createRoot } from 'react-dom/client';
 import { useLiveQuery } from "dexie-react-hooks";
 
-import {OBJECTNAME, VITALSID } from './constants.ts';
+import {OBJECTNAME, VITALSID, DATERANGES } from './constants.ts';
 import db, { snaps } from './helpers/db.ts';
 
 const Chart = React.lazy(() => import('./components/Chart.jsx'));
@@ -44,9 +44,6 @@ const checkFilter = (filters, item) => {
 const Dashboard = () => {
 
     const today = new Date();
-    const last30Days = new Date();
-
-    last30Days.setDate(today.getDate() - 30);
 
     const [filters, setFilters] = useState([]);
     const [showFor, setShowFor] = useState(null);
@@ -54,7 +51,15 @@ const Dashboard = () => {
     const [fetchDate, setFetchDate] = useState(null);
     const [url, setUrl] = useState(null);
     const [showChart, setShowChart] = useState(null);
-    const snapsList = useLiveQuery(() => snaps.where('fetchDate').above(last30Days).toArray(), [url,domain,fetchDate]);
+
+    const [dayRange, setDayRange] = useState(30);
+    const dateRange = useMemo(() => {
+        const dt = new Date();
+        dt.setDate(today.getDate() - dayRange);
+        return dt;
+    }, [dayRange]);
+
+    const snapsList = useLiveQuery(() => snaps.where('fetchDate').above(dateRange).toArray(), [url, domain, fetchDate, dateRange]);
 
     const [showPerformance, setShowPerformance] = useState(false);
     const [selectedItems, setSelectedItems] = useState([]);
@@ -208,10 +213,26 @@ const Dashboard = () => {
     const vitalsMetricsDisplay = function(vitals, isOrigin) {
         const badgeVariant = vitals.assessment === 'average' ? 'warning' : vitals.assessment === 'good' ? 'success' : 'danger';
         const naValue = vitals.value === null;
-        return <div className="position-relative">
-            {isOrigin && <Badge className='position-absolute' style={{fontSize:'50%', right:0, top: -4}} pill bg="warning" text="dark">origin</Badge> || null}
+        return <div className={["position-relative", isOrigin ? 'opacity-50' : ''].join(' ')}>
+            {isOrigin && <Badge className='position-absolute' style={{fontSize:'50%', right:0, top: -6}} pill bg="warning" text="dark">origin</Badge> || null}
             <Badge pill text={naValue && 'dark' || null} bg={ naValue && 'light' || badgeVariant} title={naValue && vitals.display || null}>{vitals.value && vitals.display || 'N/A'}</Badge>
-            <div className='d-flex gap-1 justify-content-center' style={{fontSize: '60%'}}>{vitals.percentages?.map((p,i) => <span key={i}>{p.displayValue}</span>) || '-% -% -%'}</div>
+            <div className='d-flex gap-1 justify-content-center mt-1'>
+                <OverlayTrigger
+                    placement='bottom'
+                    overlay={
+                        <Tooltip className='custom-tt'>
+                            <div>
+                                <p style={{fontSize: '120%', textShadow: '1px 1px #ddd'}} className='my-2 d-flex gap-2 justify-content-center'>
+                                    <strong className="text-success">{vitals.percentages?.[0] ? vitals.percentages[0].displayValue : 'N/A'}</strong>
+                                    <strong className="text-warning">{vitals.percentages?.[1] ? vitals.percentages[1].displayValue : 'N/A'}</strong>
+                                    <strong className="text-danger">{vitals.percentages?.[2] ? vitals.percentages[2].displayValue : 'N/A'}</strong>
+                                </p>
+                            </div>
+                        </Tooltip>
+                }>
+                    {vitals.percentages?.[0] ? (<Badge className='cursor-pointer' text={vitals.percentages[0].value >= 75 ? "dark" : "light"} bg={vitals.percentages[0].value >= 75 ? "light" : "danger"} style={{fontSize: '60%'}}>{vitals.percentages[0].displayValue}</Badge>) : <span style={{fontSize: '60%'}}>-% </span>}
+                </OverlayTrigger>
+            </div>
         </div>
     }
 
@@ -328,26 +349,41 @@ const Dashboard = () => {
                                 <td>{display(item.fetchDate)}</td>
                                 <td><a href={`?url=${encodeURIComponent(item.originalurl)}`} title="view url data"><small>{new URL(item.originalurl).pathname}</small></a></td>
                                 {/* <td>{item.desktopSnifferVersion !== item.mobileSnifferVersion ? <Badge title={`${item.desktopSnifferVersion} ${item.mobileSnifferVersion}`} pill bg="danger">YES</Badge> : <Badge pill bg="success">NO</Badge>}</td> */}
-                                <td className='text-center'>{Math.ceil(item.desktop?.categories?.performance?.score * 100) || '-'}</td>
-                                {!showPerformance && item.desktop?.vitals?.metrics && VITALSID.map((key) => <td key={key} className={[item.desktop?.vitals?.general === 'Failed' ? 'bg-danger-subtle' : 'bg-success-subtle', 'text-center vital-metric'].join(' ')}>
-                                    {item.desktop.vitals.metrics[key] ? vitalsMetricsDisplay(item.desktop.vitals.metrics[key], item.desktop?.vitals?.origin) : '-'}
-                                </td>)}
-                                {showPerformance && item.desktop?.categories?.performance?.auditRefs?.filter((ref) => ref.group === 'metrics' && !!ref.acronym ).map((ref) => {
-                                    const metric = item.desktop.audits?.[ref.id];
-                                    return <td key={ref.id} className="text-center">
-                                        {performMetricsDisplay(metric)}
-                                    </td>
-                                })}
-                                <td className='text-center'>{Math.ceil(item.mobile?.categories?.performance?.score * 100) || '-'}</td>
-                                {!showPerformance && item.mobile?.vitals?.metrics && VITALSID.map((key) => <td key={key} className={[item.mobile?.vitals?.general === 'Failed' ? 'bg-danger-subtle' : 'bg-success-subtle', 'text-center vital-metric'].join(' ')}>
-                                    {item.mobile.vitals.metrics[key] ? vitalsMetricsDisplay(item.mobile.vitals.metrics[key], item.mobile?.vitals?.origin) : '-'}
-                                </td>)}
-                                {showPerformance && item.mobile?.categories?.performance?.auditRefs?.filter((ref) => ref.group === 'metrics' && !!ref.acronym ).map((ref) => {
-                                    const metric = item.mobile.audits?.[ref.id];
-                                    return <td key={ref.id} className="text-center">
-                                        {performMetricsDisplay(metric)}
-                                    </td>
-                                })}
+                                {showPerformance ?
+                                    <>
+                                        <td className='text-center'>{Math.ceil(item.desktop?.categories?.performance?.score * 100) || '-'}</td>
+                                        {item.desktop?.categories?.performance?.auditRefs?.filter((ref) => ref.group === 'metrics' && !!ref.acronym ).map((ref) => {
+                                            const metric = item.desktop.audits?.[ref.id];
+                                            return <td key={ref.id} className="text-center">
+                                                {performMetricsDisplay(metric)}
+                                            </td>
+                                        })}
+                                        <td className='text-center'>{Math.ceil(item.mobile?.categories?.performance?.score * 100) || '-'}</td>
+                                        {item.mobile?.categories?.performance?.auditRefs?.filter((ref) => ref.group === 'metrics' && !!ref.acronym ).map((ref) => {
+                                            const metric = item.mobile.audits?.[ref.id];
+                                            return <td key={ref.id} className="text-center">
+                                                {performMetricsDisplay(metric)}
+                                            </td>
+                                        })}
+                                    </>
+                                :
+                                    <>
+                                        {item.desktop?.vitals?.general === 'Failed'
+                                            ? <td className='bg-danger text-danger text-center bg-opacity-25'><i className='bi bi-patch-exclamation-fill'></i></td>
+                                            : <td className='bg-success text-success text-center bg-opacity-25'><i className=' bi bi-patch-check'></i></td>
+                                        }
+                                        {item.desktop?.vitals?.metrics && VITALSID.map((key) => <td key={key} className='text-center vital-metric'>
+                                            {item.desktop.vitals.metrics[key] ? vitalsMetricsDisplay(item.desktop.vitals.metrics[key], item.desktop?.vitals?.origin) : '-'}
+                                        </td>)}
+                                        {item.mobile?.vitals?.general === 'Failed'
+                                            ? <td className='bg-danger text-danger text-center bg-opacity-25'><i className='bi bi-patch-exclamation-fill'></i></td>
+                                            : <td className='bg-success text-success text-center bg-opacity-25'><i className=' bi bi-patch-check'></i></td>
+                                        }
+                                        {item.mobile?.vitals?.metrics && VITALSID.map((key) => <td key={key} className='text-center vital-metric'>
+                                            {item.mobile.vitals.metrics[key] ? vitalsMetricsDisplay(item.mobile.vitals.metrics[key], item.mobile?.vitals?.origin) : '-'}
+                                        </td>)}
+                                    </>
+                                }
                             </tr>
                         </Fragment>
                     )
@@ -393,12 +429,26 @@ const Dashboard = () => {
                                 label={group.label} />
                         </li>)}
                     </ul>
+                    <h5 className='mb-2'>Date Range</h5>
+                    <ul className="list-group">
+                        {DATERANGES.map((range) => (
+                            <li key={range} className="list-group-item">
+                                <FormCheck
+                                label={`${range} days`} 
+                                name="range" 
+                                id={`range-${range}`} 
+                                type='radio' 
+                                checked={range === dayRange} 
+                                onChange={(e) => e.target.checked && setDayRange(range)} />
+                            </li> )
+                        )}
+                    </ul>
                     <h5 className='mb-2'>Filters</h5>
                     <ul className="list-group">
                         {filters.map((filter) => <li key={filter.id} className="list-group-item">
                             <h6 className='pb-3 mb-3 mt-2 border-bottom text-primary'>{filter.label}</h6>
                             <ul className="list-inline">
-                                {filter.values.map((value, i) => <li key={i} className={`list-inline-item text-nowrap overflow-hidden ${filter.type === 'date' ? 'w-50 m-0' : 'w-100'}`}>
+                                {filter.values.map((value, i) => <li key={i} className={`list-inline-item text-nowrap overflow-hidden ${filter.type === 'date' ? 'w-75 m-0' : 'w-100'}`}>
                                     <FormCheck
                                         title={value}
                                         name={`filter-${filter.id}`}
@@ -475,7 +525,7 @@ const Dashboard = () => {
                 </Suspense>}
                 <Container fluid>
                     {!snapsList ? <div className="d-flex justify-content-center align-items-center w-100" style={{height:450}}>
-                        {snapsList !== null ? <Alert key="info" variant="info">No snapShot found.</Alert> : <Spinner animation="grow" /> }
+                        {snapsList !== undefined ? <Alert key="info" variant="info">No snapShot found.</Alert> : <Spinner animation="grow" /> }
                     </div> : <RenderTable />}
                 </Container>
             </>
