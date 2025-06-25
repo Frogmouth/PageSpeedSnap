@@ -1,0 +1,4 @@
+.custom-tt {
+    --bs-tooltip-bg: var(--bs-light);
+    --bs-tooltip-color: var(--bs-dark);
+}
