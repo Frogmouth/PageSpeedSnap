@@ -187,6 +187,10 @@ const Dashboard = () => {
         openPage(settingsUrl);
     }
 
+    const openDashboard = () => {
+        openPage(dashboardUrl);
+    }
+
     useEffect( () => {
         if(url) {
             let urlObj = new URL(url);
@@ -273,8 +277,11 @@ const Dashboard = () => {
                 <Navbar bg="primary" data-bs-theme="dark">
                     <Container>
                         <Nav>
+                            <Nav.Link onClick={openDashboard}>
+                                <i className="bi bi-clipboard-data"></i> Board
+                            </Nav.Link>
                             <Nav.Link onClick={openSettings}>
-                                <i className="bi bi-house-gear-fill"></i> Configs
+                                <i className="bi bi-house-gear-fill"></i> Settings
                             </Nav.Link>
                         </Nav>
                     </Container>
